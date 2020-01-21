@@ -15,7 +15,12 @@
 
 ## 效果图
 
-![wx1](./assets/images/demoPG1.jpg)![wx2](./assets/images/demoPG4.jpg)![wx2](./assets/images/demoPG2.jpg)![wx2](./assets/images/demoPG3.jpg)
+<div>
+    <img src="./assets/images/demoPG1.jpg" style="width:20%">
+	<img src="./assets/images/demoPG4.jpg" style="width:20%">
+	<img src="./assets/images/demoPG2.jpg" style="width:20%">
+	<img src="./assets/images/demoPG3.jpg" style="width:20%">
+</div>
 
 ## Demo 中连接打印机的流程
 
@@ -246,4 +251,4 @@ export function printImage(opt = {}, imageInfo = {}) {
 
 ## 安利
 
-- [微信小程序组件库wux-weapp](https://wux-weapp.github.io/wux-weapp-docs/?cache=712#/introduce)
+-   [微信小程序组件库 wux-weapp](https://wux-weapp.github.io/wux-weapp-docs/?cache=712#/introduce)
