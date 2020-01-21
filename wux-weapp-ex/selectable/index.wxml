@@ -1,0 +1,15 @@
+<label class="wux-class {{ classes.wrap }}" bindtap="onChange" style="{{ extStyle }}">
+    <block wx:if="{{ type === 'checkbox' }}">
+        <checkbox value="{{ value }}" checked="{{ inputChecked }}" color="{{ inputColor }}" disabled="{{ disabled }}" class="wux-input-class {{ classes.input }}" />
+        <icon class="{{ classes.icon }} checkbox" style="border:2rpx solid {{!disabled?inputColor:'#666'}};background-color:{{ !disabled ? inputChecked?inputColor:'transparent' : '#666' }};" type="{{ inputChecked ? 'success_no_circle' : 'circle' }}" size="16" color="{{ !disabled ? inputChecked?'#fff':'transparent' : '#fff' }}" />
+    </block>
+    <block wx:elif="{{ type === 'radio' }}">
+        <radio value="{{ value }}" checked="{{ inputChecked }}" color="{{ inputColor }}" disabled="{{ disabled }}" class="wux-input-class {{ classes.input }}" />
+        <icon class="{{ classes.icon }} radio" style="border:2rpx solid {{!disabled?inputColor:'#666'}};background-color:{{ !disabled ? inputChecked?inputColor:'transparent' : '#666' }};" type="{{ inputChecked ? 'success_no_circle' : 'circle' }}" size="16" color="{{ !disabled ? inputChecked?'#fff':'transparent' : '#fff' }}" />
+    </block>
+    <block wx:else>
+        <slot name="icon-on" wx:if="{{ inputChecked }}"></slot>
+        <slot name="icon-off" wx:else></slot>
+    </block>
+    <slot></slot>
+</label>

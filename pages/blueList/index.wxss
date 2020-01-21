@@ -1,0 +1,26 @@
+page {
+    background-color: #efefef;
+}
+.z-title {
+    padding: 30rpx 0;
+    text-align: center;
+    font-size: 16px;
+    color: #666666;
+    background-color: white;
+}
+.z-status {
+    margin-top: 40rpx;
+    padding: 0rpx 30rpx;
+}
+.z-btn {
+    padding: 0rpx 30rpx;
+    margin-top: 40rpx;
+}
+
+.z-connect{
+    margin-left:30rpx !important;
+}
+.z-padding{
+    padding:30rpx;
+    
+}

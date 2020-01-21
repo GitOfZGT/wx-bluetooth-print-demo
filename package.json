@@ -1,0 +1,13 @@
+{
+    "name": "wx-bluetoolth-print-demo",
+    "version": "1.0.0",
+    "private": true,
+    "description": "微信小程序蓝牙打印demo",
+    "author": "zgt",
+    "scripts": {},
+    "dependencies": {},
+    "devDependencies": {},
+    "peerDependencies": {},
+    "engines": {},
+    "browserslist": []
+}

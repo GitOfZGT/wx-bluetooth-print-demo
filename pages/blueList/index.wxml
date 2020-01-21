@@ -1,0 +1,34 @@
+<view class="z-title">附近的蓝牙设备</view>
+<wux-radio-group value="{{ deviceId }}" bind:change="onBlueChange">
+    <wux-radio wx:key="{{item.devId}}" wx:for="{{devices}}" color="positive" title="{{item.name}}" label="{{item.devId+' '+item.rssi}}" value="{{item.devId}}" />
+</wux-radio-group>
+<view wx:if="{{devices.length}}" class="z-status">
+    <text wx:if="{{deviceName}}">当前选择的蓝牙设备:{{deviceName}}</text>
+    <text wx:else>请选择蓝牙设备</text>
+    <wux-tag wux-class="z-connect" wx:if="{{deviceName}}" color="green">
+        {{connection?'连接成功':'连接失败'}}
+    </wux-tag>
+    <wux-button wx:if="{{deviceName&&connection}}" type="positive" size="small" bind:click="cancelConnection">
+        取消连接
+    </wux-button>
+</view>
+<view class="z-padding">打印文本</view>
+<view class="z-padding">
+    <wux-textarea value="{{ message }}" placeholder="请输入打印内容" bind:change="inputChange" controlled rows="{{10}}" maxlength="{{-1}}" />
+</view>
+<view class="z-padding">是否打印二维码</view>
+<view class="z-padding">
+    <wux-switch value="{{ checked }}" bind:change="checkedChange" />
+</view>
+<view class="z-padding">
+    <wux-button type="positive" size="default" block bind:click="print">打印以上内容</wux-button>
+</view>
+<view style="margin-top:30rpx;">
+    <canvas style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;margin:0 auto;" canvas-id="secondCanvas"></canvas>
+</view>
+<view class="z-btn">
+    <wux-button type="positive" size="default" block bind:click="chooseImage">选择一张图片打印</wux-button>
+</view>
+<view class="z-btn">
+    <wux-button type="positive" size="default" block bind:click="clearCanvas">清空canvas</wux-button>
+</view>

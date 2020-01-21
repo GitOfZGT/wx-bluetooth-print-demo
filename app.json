@@ -1,0 +1,12 @@
+{
+  "pages": [
+    "pages/blueList/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#387EF5",
+    "navigationBarTitleText": "微信小程序蓝牙打印demo",
+    "navigationBarTextStyle": "white"
+  },
+  "sitemapLocation": "sitemap.json"
+}
