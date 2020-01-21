@@ -16,10 +16,10 @@
 ## 效果图
 
 <div>
-    <img src="./assets/images/demoPG1.jpg" style="width:20%">
-	<img src="./assets/images/demoPG4.jpg" style="width:20%">
-	<img src="./assets/images/demoPG2.jpg" style="width:20%">
-	<img src="./assets/images/demoPG3.jpg" style="width:20%">
+    <img src="./assets/images/demoPG1.jpg" width="20%">
+	<img src="./assets/images/demoPG4.jpg" width="20%">
+	<img src="./assets/images/demoPG2.jpg" width="20%">
+	<img src="./assets/images/demoPG3.jpg" width="20%">
 </div>
 
 ## Demo 中连接打印机的流程
