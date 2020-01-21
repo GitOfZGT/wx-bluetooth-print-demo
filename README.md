@@ -15,10 +15,7 @@
 
 ## 效果图
 
-![wx1](./assets/images/demoPG1.jpg)
-![wx2](./assets/images/demoPG4.jpg)
-![wx2](./assets/images/demoPG2.jpg)
-![wx2](./assets/images/demoPG3.jpg)
+![wx1](./assets/images/demoPG1.jpg)![wx2](./assets/images/demoPG4.jpg)![wx2](./assets/images/demoPG2.jpg)![wx2](./assets/images/demoPG3.jpg)
 
 ## Demo 中连接打印机的流程
 
