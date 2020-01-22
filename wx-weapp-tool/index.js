@@ -150,7 +150,7 @@ export function wxRequest(method, url, query, config) {
 export function wxAsyncPromise(name, options) {
     return new Promise((resolve, reject) => {
         wx[name]({
-            ...(options ? options : {}),
+            ...(options || {}),
             success: function(res) {
                 resolve(res);
             },

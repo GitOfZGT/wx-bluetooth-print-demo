@@ -1,17 +1,17 @@
 # 微信小程序连接蓝牙打印机示例
 
-小程序连接蓝牙打印机打印文本与二维码等示例在 github 上都能找到一些，唯独打印图片这个案例几乎没有。最早在 CSDN 找到 [微信小程序蓝牙连接 TSPL 打印机打印图片思路](https://blog.csdn.net/a513908329/article/details/89640792) 这篇文章，代码完整性很缺，被坑一周。继续找资料摸索解决了打印图片这个问题。
+小程序连接蓝牙打印机打印文本与二维码等示例在 github 上都能找到一些，唯独打印图片这个案例几乎没有。希望能帮助到有打印图片需求的小伙伴。
 
 -   测试打印机：[凯盛诺 PTP-II-UBC 58mm 便携热敏打印机](http://www.csntek.cn/cn/show/270)
 -   测试环境有：Android , IOS；其中 Android 和 IOS 在打印文本与二维码速率相对一致，但 IOS 打印图片几乎慢到无法打印的情况(听说蓝牙打印机在 IOS 中受限制，需要与 IOS 合作授权，在斑马品牌的一款打印机用 IOS 就能打印出来)
--   指令类型：ESC/POS 指令集 (打印机产家都会提供对应的指令文档，demo 中使用十进制的数据格式的指令，十六进制的指令使用方式可以参考另一个示例[小程序蓝牙打印 miniprogram-bluetoothprinter](https://github.com/benioZhang/miniprogram-bluetoothprinter))
+-   打印机指令类型：ESC/POS 指令集 (打印机产家都会提供对应的指令文档，此demo 中使用十进制的数据格式的指令，十六进制的指令或者更多指令的使用方式可以参考另一个示例[小程序蓝牙打印 miniprogram-bluetoothprinter](https://github.com/benioZhang/miniprogram-bluetoothprinter))
 
-## 已实现情况
+## 示例功能
 
 -   连接蓝牙打印机
--   打印文本
+-   打印文本 (打印中文出现乱码,因为打印机默认的编码是GB2312,需要将UTF-8转GB2312,这里用的轻小的[GBK库](https://github.com/cnwhy/GBK.js),也可以使用[小程序蓝牙打印 miniprogram-bluetoothprinter](https://github.com/benioZhang/miniprogram-bluetoothprinter)提到的[text-encoding](https://github.com/inexorabletash/text-encoding))
 -   打印二维码
--   打印任意图片
+-   打印任意图片(此示例的重点)
 
 ## 效果图
 
@@ -39,7 +39,28 @@
 ## 关于找蓝牙设备中能用的 Characteristic，这里贴出对应的代码，关注注释部分
 
 ```js
+/**
+ * 以Promise方式调用 微信api
+ * @param {string} name 微信api的名称 ，如 wxAsyncPromise("getSystemInfo",options)
+ * @param {object} options 除了success 和 fail 的其他参数
+ * @returns
+ */
+export function wxAsyncPromise(name, options) {
+    return new Promise((resolve, reject) => {
+        wx[name]({
+            ...(options || {}),
+            success: function(res) {
+                resolve(res);
+            },
+            fail: function(res) {
+                reject(res);
+            },
+        });
+    });
+}
 //在多个服务services中递归查找能用的特征值
+//deviceId : 已连接的蓝牙设备id
+//services : wx.getBLEDeviceServices()取得的服务
 export function getDeviceCharacteristics(deviceId, services = [], success, fail) {
     services = services.slice(0);
     if (services.length) {
@@ -54,7 +75,10 @@ export function getDeviceCharacteristics(deviceId, services = [], success, fail)
                 let write = false;
                 let notify = false;
                 let indicate = false;
-                //有斑马品牌的一款打印机中res.characteristics的所有uuid都是相同的，找所有的properties存在(notify || indicate) && write（如果只写入数据只要write=true也可以）这种情况就说明这个uuid是可用的（不确保所有的打印机都能用这种方式取得uuid,在凯盛诺打印机的res.characteristic只有一个uuid,所以也能用这个方式）
+                //有斑马品牌的一款打印机中res.characteristics的所有uuid都是相同的，
+                //找所有的properties存在(notify || indicate) && write（如果只写入数据只要write=true也可以）这种情况就说明这个uuid是可用的
+                //（不确保所有的打印机都能用这种方式取得uuid,
+                //在凯盛诺打印机的res.characteristic只有一个uuid,所以也能用这个方式）
                 for (var i = 0; i < res.characteristics.length; i++) {
                     if (!notify) {
                         notify = res.characteristics[i].properties.notify;
@@ -98,7 +122,9 @@ export function getDeviceCharacteristics(deviceId, services = [], success, fail)
 
 ### 位图数据
 
-需要把 Uint8ClampedArray 类型的数据转成打印机识别的点阵位图数据（也可以让后台实现图片转位图数据，参考[热敏打印机编程 ESC/POS 指令](https://www.jianshu.com/p/dd6ca0054298)）。
+需要把 Uint8ClampedArray 类型的数据转成打印机识别的点阵位图数据（也可以让后台实现图片转位图数据，参考[热敏打印机编程 ESC/POS 指令](https://www.jianshu.com/p/dd6ca0054298)）。  
+
+不同打印机厂家的指令集可能不同，但打印图片的位图数据是一样的。
 
 ### 贴出 Uint8ClampedArray 转位图数据的代码
 
@@ -167,8 +193,8 @@ export function overwriteImageData(data) {
             deviceId,
             serviceId,
             characteristicId,
-			value [ArrayBuffer],
-			lasterSuccess,
+            value [ArrayBuffer],
+            lasterSuccess,
     }
  */
 export function sendDataToDevice(options) {
