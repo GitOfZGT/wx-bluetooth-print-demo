@@ -1,4 +1,4 @@
-<view class="wux-class {{ classes.wrap }}">
+<view class="wux-class {{ classes.wrap }} {{!inputValue?'__placeholder':''}}">
 	<view class="{{ classes.label }}" wx:if="{{ label }}">{{ label }}</view>
 	<block wx:else>
 		<slot></slot>

@@ -1,37 +1,28 @@
 //index.js
-import { wxAsyncPromise } from '../../wx-weapp-tool/index';
 import {
-    getDeviceCharacteristics,
     printImage,
     sendDataToDevice,
     overwriteImageData,
     printQR,
+    printCommand,
 } from '../../wx-weapp-tool/bluetoolth';
 
 import GBK from '../../wx-weapp-tool/libs/gbk.min';
-const errMsg = {
-    10000: '未初始化蓝牙模块',
-    10001: '蓝牙未打开',
-};
 
-function debounce(func, wait) {
-    let timer = null;
-    return function(opt) {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-            func && func.call(this, opt);
-        }, wait || 60);
-    };
-}
+import getBluetoothPageConfig from '../../wx-weapp-tool/bluetoothConnectionTemplate/index';
+const bluetoothConfig = getBluetoothPageConfig();
 
 Page({
     data: {
-        devices: [],
-        deviceName: '',
-        deviceId: '',
-        connection: 0,
-        canvasWidth: 100,
-        canvasHeight: 50,
+        ...bluetoothConfig.data,
+        // 打印机纸张宽度
+        paperWidth: 384,
+        canvasWidth: 1,
+        canvasHeight: 1,
+        img: '',
+        threshold: [200],
+        percentage: 0,
+        printing: false,
         message: `【2019】
         当事人姓名：获取当事人姓名
         年龄：获取当事人年龄
@@ -50,200 +41,18 @@ Page({
         checked: true,
     },
     onHide() {
-        wx.offBluetoothDeviceFound(this.onFoundDevice);
-        wxAsyncPromise('stopBluetoothDevicesDiscovery');
-        // console.log("停止搜索蓝牙设备");
+        bluetoothConfig.onHide.call(this);
     },
-    onLoad() {
-        this.openBlue();
+    onLoad(options) {
+        bluetoothConfig.onLoad.call(this, options);
     },
     onUnload() {
-        //取消蓝牙连接并关闭蓝牙模块
-        wxAsyncPromise('closeBLEConnection', {
-            deviceId: this.data.deviceId,
-        }).finally((res) => {
-            wxAsyncPromise('closeBluetoothAdapter');
-        });
+        bluetoothConfig.onUnload.call(this);
     },
     onPullDownRefresh() {
-        //下拉刷新
-        this.searchBlue();
+        bluetoothConfig.onPullDownRefresh.call(this);
     },
-    //获取设备列表
-    getNewDevicesList(devices) {
-        const ids = [];
-        //过滤
-        const devs = devices
-            .filter((item) => !(item.RSSI > 0 || item.name == '未知设备'))
-            .map((item) => {
-                ids.push(item.deviceId);
-                return {
-                    rssi: item.RSSI,
-                    name: item.name,
-                    devId: item.deviceId,
-                };
-            });
-        //过滤重复
-        const filterId = [...new Set(ids)];
-        const newDevices = [];
-        while (filterId.length) {
-            const id = filterId.shift();
-            for (let index = 0; index < devs.length; index++) {
-                const item = devs[index];
-                if (item.devId === id) {
-                    newDevices.push(item);
-                    break;
-                }
-            }
-        }
-        return newDevices;
-    },
-    onFoundDevice: debounce(function(devices) {
-        //获取搜寻的所有设备
-        wxAsyncPromise('getBluetoothDevices').then((res) => {
-            this.setData({
-                devices: this.getNewDevicesList(res.devices),
-            });
-        });
-    }, 60),
-    openBlue() {
-        this.onSearchDeviceFound(wxAsyncPromise('openBluetoothAdapter'));
-    },
-    onSearchDeviceFound(pro) {
-        pro.then((res) => {
-            console.log('初始化蓝牙成功');
-            return wxAsyncPromise('startBluetoothDevicesDiscovery').then((res) => {
-                console.log('正在搜寻设备');
-                wx.showLoading({
-                    title: '正在搜寻设备',
-                    mask: false,
-                });
-            });
-        })
-            .then((res) => {
-                //监听寻找新设备
-                wx.onBluetoothDeviceFound(this.onFoundDevice);
-            })
-            .catch((res) => {
-                const coode = res.errCode ? res.errCode.toString() : '';
-                const msg = errMsg[coode];
-                wx.showToast({
-                    title: msg || coode,
-                    icon: 'none',
-                });
-            })
-            .finally(() => {
-                setTimeout(() => {
-                    wx.hideToast();
-                }, 300);
-                wx.stopPullDownRefresh();
-            });
-    },
-    cancelConnection() {
-        wxAsyncPromise('closeBLEConnection', {
-            deviceId: this.data.deviceId,
-        }).then((res) => {
-            this.setData({
-                deviceId: '',
-                connection: 0,
-                deviceName: '',
-            });
-        });
-    },
-    //重新搜索蓝牙设备
-    searchBlue() {
-        wxAsyncPromise('closeBLEConnection', {
-            deviceId: this.data.deviceId,
-        }).finally((res) => {
-            this.setData({
-                devices: [],
-                deviceId: '',
-                connection: 0,
-                deviceName: '',
-            });
-            wx.offBluetoothDeviceFound(this.onFoundDevice);
-            //停止搜寻蓝牙
-            wxAsyncPromise('stopBluetoothDevicesDiscovery').then(() => {
-                wx.getBluetoothAdapterState({
-                    success: (res) => {
-                        if (!res.available) {
-                            //未打开蓝牙
-                        } else if (!res.discovering) {
-                            //没有在搜寻蓝牙情况
-                            this.onSearchDeviceFound(Promise.resolve());
-                        }
-                    },
-                    fail: (res) => {
-                        if (res.errCode === 10000) {
-                            this.openBlue();
-                        }
-                    },
-                });
-            });
-        });
-    },
-    checkedChange(e) {
-        this.setData({ checked: e.detail.value });
-    },
-    //连接蓝牙
-    connectBlue(deviceId) {
-        // const deviceId = this.data.deviceId;
-        const selectDevice = this.data.devices.find((item) => item.devId === deviceId);
-        const deviceName = selectDevice.name;
-        wx.showLoading({
-            title: `正在连接${deviceName}`,
-            mask: true,
-        });
-        wxAsyncPromise('createBLEConnection', { deviceId })
-            .then((res) => {
-                return wxAsyncPromise('getBLEDeviceServices', { deviceId });
-            })
-            .then((res) => {
-                this.services = res.services;
-                console.log('服务', this.services);
-                getDeviceCharacteristics(
-                    deviceId,
-                    [...this.services],
-                    (character) => {
-                        console.log(character);
-                        this.character = character;
-
-                        this.setData({
-                            connection: 1,
-                            deviceName: selectDevice.name,
-                            deviceId,
-                        });
-                        wx.hideLoading();
-                        wx.offBluetoothDeviceFound(this.onFoundDevice);
-                        wxAsyncPromise('stopBluetoothDevicesDiscovery');
-                    },
-                    (res) => {
-                        console.log('连接失败', res);
-                        this.setData({
-                            connection: 0,
-                        });
-                        wx.hideLoading();
-                    },
-                );
-            })
-            .catch((res) => {
-                console.log('连接失败', res);
-                this.setData({
-                    connection: 0,
-                });
-                wx.hideLoading();
-            });
-    },
-    onBlueChange(e) {
-        const deviceId = e.detail.value;
-        if (this.data.deviceId === deviceId) return;
-        this.setData({
-            deviceId: '',
-            connection: 0,
-            deviceName: '',
-        });
-        this.connectBlue(deviceId);
-    },
+    ...bluetoothConfig.methods,
     inputChange(e) {
         console.log(e);
         this.setData({
@@ -261,7 +70,8 @@ Page({
         const opt = { deviceId: this.data.deviceId, ...this.character };
         sendDataToDevice({
             ...opt,
-            value: new Uint8Array(GBK.encode(this.data.message)).buffer,
+            value: new Uint8Array([...printCommand.clear, ...GBK.encode(this.data.message), ...printCommand.enter])
+                .buffer,
             lasterSuccess: () => {
                 // 打印二维码
                 if (this.data.checked) {
@@ -278,11 +88,53 @@ Page({
         ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasWidth);
         ctx.draw();
         this.setData({
-            canvasWidth: 100,
-            canvasHeight: 50,
+            canvasWidth: 1,
+            canvasHeight: 1,
+            img: '',
         });
     },
     chooseImage() {
+        const ctx = wx.createCanvasContext('secondCanvas');
+        //选择一张图片
+        wx.chooseImage({
+            success: (res) => {
+                const tempFilePath = res.tempFilePaths[0];
+                wx.getImageInfo({
+                    src: tempFilePath,
+                    success: (res) => {
+                        const w = this.data.paperWidth;
+                        const h = Math.floor((res.height * w) / res.width);
+                        this.setData({
+                            img: tempFilePath,
+                            canvasHeight: h,
+                            canvasWidth: w,
+                        });
+                        //canvas 画一张图片
+                        ctx.fillStyle = 'rgba(255,255,255,1)';
+                        ctx.clearRect(0, 0, w, h);
+                        ctx.fillRect(0, 0, w, h);
+                        ctx.drawImage(tempFilePath, 0, 0, w, h);
+                        ctx.draw(false, () => {
+                            wx.hideLoading();
+                        });
+                    },
+                    fail: (res) => {
+                        console.log('get info fail', res);
+                        wx.hideLoading();
+                    },
+                });
+            },
+        });
+    },
+
+    handleSlider(e) {
+        const { value } = e.detail;
+
+        this.setData({
+            threshold: value,
+        });
+    },
+    printImage() {
         if (!this.data.deviceId) {
             wx.showToast({
                 title: '未连接任何蓝牙设备',
@@ -290,54 +142,85 @@ Page({
             });
             return;
         }
-        const ctx = wx.createCanvasContext('secondCanvas');
-        //选择一张图片
-        wx.chooseImage({
+        if (this.lock === true) {
+            console.log('lock');
+            return;
+        }
+        this.lock = true;
+        // 选择一张图片
+        const { img } = this.data;
+        if (!img) {
+            wx.showToast({
+                title: '未获取图片',
+                icon: 'none',
+            });
+            this.lock = false;
+            return;
+        }
+        const { canvasWidth, canvasHeight, deviceId, threshold } = this.data;
+        console.log('threshold', threshold);
+        //获取画布里的图片数据
+        wx.canvasGetImageData({
+            canvasId: 'secondCanvas',
+            x: 0,
+            y: 0,
+            width: canvasWidth,
+            height: canvasHeight,
             success: (res) => {
-                const temppath = res.tempFilePaths[0];
-                //获取图片的宽高信息
-                wx.getImageInfo({
-                    src: temppath,
-                    success: (res) => {
-                        //纸张宽度384px
-                        const w = 384;
-                        const h = (res.height * w) / res.width;
-                        this.setData(
-                            {
-                                canvasHeight: h,
-                                canvasWidth: w,
-                            },
-                            () => {
-                                //canvas 画一张图片
-                                ctx.drawImage(temppath, 0, 0, w, h);
-                                ctx.draw();
-                                setTimeout(() => {
-                                    //获取画布里的图片数据
-                                    wx.canvasGetImageData({
-                                        canvasId: 'secondCanvas',
-                                        x: 0,
-                                        y: 0,
-                                        width: w,
-                                        height: h,
-                                        success: (res) => {
-                                            const pix = res.data;
-                                            const opt = { deviceId: this.data.deviceId, ...this.character };
-                                            const sendImageinfo = overwriteImageData({
-                                                imageData: pix,
-                                                width: w,
-                                                height: h,
-                                                threshold: 190,
-                                            });
-                                            console.log(sendImageinfo);
-                                            //打印图片
-                                            printImage(opt, sendImageinfo);
-                                        },
-                                    });
-                                }, 100);
-                            },
-                        );
+                const pix = res.data;
+                const opt = {
+                    deviceId,
+                    ...this.character,
+                    onProgress: (percentage) => {
+                        console.log('percentage', percentage);
+                        this.setData({
+                            percentage,
+                        });
                     },
+                    lasterSuccess: () => {
+                        console.log('laster success');
+                        this.setData({
+                            printing: false,
+                            percentage: 0,
+                        });
+                        wx.showModal({
+                            title: '提示',
+                            content: '数据已发送完，请检查打印的内容是否正常',
+                            showCancel: false,
+                            confirmText: '好的',
+                        });
+                    },
+                };
+                this.setData({
+                    printing: true,
                 });
+                //打印图片
+                printImage(
+                    opt,
+                    overwriteImageData({
+                        threshold: threshold[0],
+                        imageData: pix,
+                        width: canvasWidth,
+                        height: canvasHeight,
+                    }),
+                );
+            },
+            complete: () => {
+                this.lock = false;
+            },
+        });
+    },
+    closeProgress() {
+        wx.showModal({
+            title: '提示',
+            content: '正在打印中，确认关闭打印进度条吗？',
+            success: (res) => {
+                if (res.confirm) {
+                    this.setData({
+                        printing: false,
+                    });
+                } else if (res.cancel) {
+                }
             },
         });
     },

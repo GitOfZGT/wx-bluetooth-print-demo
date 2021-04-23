@@ -5,19 +5,35 @@
 	},
 	"setting": {
 		"urlCheck": false,
+		"scopeDataCheck": false,
+		"coverView": true,
 		"es6": true,
 		"postcss": true,
+		"compileHotReLoad": false,
+		"preloadBackgroundData": false,
 		"minified": true,
-		"newFeature": true,
-		"nodeModules": true,
 		"autoAudits": false,
+		"newFeature": true,
 		"uglifyFileName": true,
-		"checkInvalidKey": true
+		"uploadWithSourceMap": true,
+		"useIsolateContext": true,
+		"nodeModules": true,
+		"enhance": false,
+		"useCompilerModule": false,
+		"userConfirmedUseCompilerModuleSwitch": false,
+		"showShadowRootInWxmlPanel": true,
+		"checkInvalidKey": true,
+		"checkSiteMap": true,
+		"babelSetting": {
+			"ignore": [],
+			"disablePlugins": [],
+			"outputPath": ""
+		}
 	},
 	"compileType": "miniprogram",
-	"libVersion": "2.10.0",
+	"libVersion": "2.11.3",
 	"appid": "wxb7c0c09c309a2698",
-	"projectname": "微信小程序蓝牙打印demo",
+	"projectname": "%E5%BE%AE%E4%BF%A1%E5%B0%8F%E7%A8%8B%E5%BA%8F%E8%93%9D%E7%89%99%E6%89%93%E5%8D%B0demo",
 	"debugOptions": {
 		"hidedInDevtools": []
 	},

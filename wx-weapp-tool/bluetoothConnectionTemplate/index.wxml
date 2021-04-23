@@ -1,0 +1,18 @@
+
+  <view class="z-title" wx:if="{{printTitle}}">{{printTitle}}</view>
+  <view class="z-title">附近的蓝牙设备</view>
+  <wux-radio-group value="{{ deviceId }}" bind:change="onBlueChange">
+    <wux-radio wx:key="{{item.devId}}" wx:for="{{devices}}" color="positive" title="{{item.name}}" label="{{item.devId+' '+item.rssi}}" value="{{item.devId}}" />
+  </wux-radio-group>
+  <view wx:if="{{!devices.length}}" class="z-devices-tip">正在搜寻蓝牙设备...</view>
+  <view wx:if="{{devices.length}}" class="z-status">
+    <text wx:if="{{deviceName}}">当前选择的蓝牙设备:{{deviceName}}</text>
+    <text wx:else>请选择蓝牙设备</text>
+    <wux-tag wux-class="z-connect" wx:if="{{deviceName}}" color="green">
+      {{connection?'连接成功':'连接失败'}}
+    </wux-tag>
+    <wux-button wx:if="{{deviceName&&connection}}" type="positive" size="small" bind:click="cancelConnection">
+      取消连接
+    </wux-button>
+  </view>
+   <wux-toptips id="wux-toptips" />

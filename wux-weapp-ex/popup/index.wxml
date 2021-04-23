@@ -1,7 +1,7 @@
 <wux-backdrop id="wux-backdrop" wx:if="{{ mask }}" bind:click="onMaskClick" zIndex="{{ zIndex }}" />
 <view class="wux-class {{ classes.wrap }}" style="{{ extStyle }}">
     <wux-animation-group wux-class="{{ prefixCls }}" in="{{ popupVisible }}" classNames="{{ transitionName }}" bind:exited="onExited" wrapStyle="{{ { zIndex } }}" mountOnEnter="{{ mountOnEnter }}" unmountOnExit="{{ unmountOnExit }}">
-        <view class="wux-content-class {{ classes.content }}">
+        <view class="wux-content-class {{ classes.content }}" catch:touchmove="stopMove">
             <view class="wux-header-class {{ classes.hd }}" wx:if="{{ hasHeader }}">
                 <view class="{{ classes.title }}" wx:if="{{ title }}">{{ title }}</view>
                 <block wx:else>

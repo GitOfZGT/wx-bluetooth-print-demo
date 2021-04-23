@@ -31,7 +31,7 @@ export function openBlue() {
  */
 export function onfindBlueDevices(getDevices) {
     //监听寻找到新设备的事件
-    wx.onBluetoothDeviceFound(function(devices) {
+    wx.onBluetoothDeviceFound(function (devices) {
         //获取在蓝牙模块生效期间所有已发现的蓝牙设备
         wxAsyncPromise('getBluetoothDevices').then((res) => {
             getDevices && getDevices(res.devices);
@@ -71,7 +71,6 @@ export function getDeviceCharacteristics(deviceId, services = [], success, fail)
                 let write = false;
                 let notify = false;
                 let indicate = false;
-                //有斑马品牌的一款打印机中res.characteristics的所有uuid都是相同的，找所有的properties存在(notify || indicate) && write这种情况就说明这个uuid是可用的（不确保所有的打印机都能用这种方式取得uuid,在主要测试得凯盛诺打印机res.characteristic只有一个uuid,所以也能用这个方式）
                 for (var i = 0; i < res.characteristics.length; i++) {
                     if (!notify) {
                         notify = res.characteristics[i].properties.notify;
@@ -113,13 +112,13 @@ export function getDeviceCharacteristics(deviceId, services = [], success, fail)
  * @export
  * @param {object} options
  * {
-            deviceId,//蓝牙设备id
-            serviceId,//服务id
-            characteristicId,//可用特征值uuid
+            deviceId,
+            serviceId,
+            characteristicId,
     }
  * @param {function} onChange 监听蓝牙设备传递数据回调函数
  */
-export function onBLECharacteristicValueChange(options, onChange = function() {}) {
+export function onBLECharacteristicValueChange(options, onChange = function () {}) {
     wxAsyncPromise('notifyBLECharacteristicValueChange', {
         state: true,
         ...options,
@@ -145,7 +144,7 @@ export function onBLECharacteristicValueChange(options, onChange = function() {}
 
 export function sendDataToDevice(options) {
     let byteLength = options.value.byteLength;
-    //这里默认一次20个字节发送
+    //这里默认一次20个字发送
     const speed = options.onceByleLength || 20;
     if (byteLength > 0) {
         wxAsyncPromise('writeBLECharacteristicValue', {
@@ -163,7 +162,7 @@ export function sendDataToDevice(options) {
                 }
             })
             .catch((res) => {
-                console.log(res);
+                options.onError && options.onError(res);
             });
     }
 }
@@ -184,6 +183,18 @@ export function charToArray(str) {
     }
     return arr;
 }
+
+// 使用的 ESC/POS指令， 十进制方式
+// 更多指令请查看 ./PrintCommandDocs/ESC-POS指令文档(凯盛诺打印机代表).pdf
+
+export const printCommand = {
+    left: [27, 97, 0], //居左
+    center: [27, 97, 1], //居中
+    right: [27, 97, 2], //居右
+    clear: [27, 64], //初始化
+    enter: [10],
+};
+
 //打印二维码
 /**
  *
@@ -199,7 +210,7 @@ export function charToArray(str) {
  */
 export function printQR(options) {
     //打印二维码的十进制指令data：
-    let data = [29, 107, 97, 7, 4, options.value.byteLength, 0];
+    let data = [...printCommand.clear, 29, 107, 97, 7, 4, options.value.byteLength, 0];
     sendDataToDevice({
         ...options,
         value: new Uint8Array(data).buffer,
@@ -229,7 +240,7 @@ export function overwriteImageData(data) {
             const grayPixle1 = grayPixle(pix.slice(i + k * 4, i + k * 4 + (4 - 1)));
             //阈值调整
             if (grayPixle1 > threshold) {
-                //灰度值大于threshold位   白色 为第k位0不打印
+                //灰度值大于128位   白色 为第k位0不打印
                 part[k] = 0;
             } else {
                 part[k] = 1;
@@ -239,16 +250,16 @@ export function overwriteImageData(data) {
         for (let a = 0; a < part.length; a++) {
             temp += part[a] * Math.pow(2, part.length - 1 - a);
         }
-        //开始不明白以下算法什么意思，了解了字节才知道，一个字节是8位的二进制数，part这个数组存的0和1就是二进制的0和1，传输到打印的位图数据的一个字节是0-255之间的十进制数，以下是用权相加法转十进制数，理解了这个就用上面的for循环替代了
+        //开始不明白以下算法什么意思，了解了字节才知道，一个字节是8位的二进制数，part这个数组存的0和1就是二进制的0和1，传输到打印的位图数据的一个字节是0-255之间的十进制数，以下是用相权相加法转十进制数，理解了这个就用上面的for循环替代了
         // const temp =
-        //     part[0] * 128 +
-        //     part[1] * 64 +
-        //     part[2] * 32 +
-        //     part[3] * 16 +
-        //     part[4] * 8 +
-        //     part[5] * 4 +
-        //     part[6] * 2 +
-        //     part[7] * 1;
+        //   part[0] * 128 +
+        //   part[1] * 64 +
+        //   part[2] * 32 +
+        //   part[3] * 16 +
+        //   part[4] * 8 +
+        //   part[5] * 4 +
+        //   part[6] * 2 +
+        //   part[7] * 1;
         sendImageData[index++] = temp;
     }
     return {
@@ -257,35 +268,32 @@ export function overwriteImageData(data) {
         height: sendHeight,
     };
 }
-/**
- * printImage
- * @param {object} opt
- * {
-            deviceId,//蓝牙设备id
-            serviceId,//服务id
-            characteristicId,//可用特征值uuid
-            lasterSuccess , //最后完成的回调
-    }
- */
+
 export function printImage(opt = {}, imageInfo = {}) {
+    const { printAlign = 'left' } = opt;
     let arr = imageInfo.array,
         width = imageInfo.width;
     const writeArray = [];
     const xl = width % 256;
     const xh = width / 256;
-    //分行发送图片数据,用的十进制指令
-    const command = [29, 118, 48, 0, xl, xh, 1, 0];
+    //分行发送图片数据
+    const command = []
+        .concat(printCommand.clear)
+        .concat(printCommand[printAlign])
+        .concat([29, 118, 48, 0, xl, xh, 1, 0]);
     for (let i = 0; i < arr.length / width; i++) {
         const subArr = arr.slice(i * width, i * width + width);
         const tempArr = command.concat(subArr);
         writeArray.push(new Uint8Array(tempArr));
     }
+    const len = writeArray.length;
     const print = (options, writeArray) => {
         if (writeArray.length) {
             sendDataToDevice({
                 ...options,
                 value: writeArray.shift().buffer,
                 lasterSuccess: () => {
+                    options.onProgress && options.onProgress(Math.floor(((len - writeArray.length) / len) * 100));
                     if (writeArray.length) {
                         print(options, writeArray);
                     } else {

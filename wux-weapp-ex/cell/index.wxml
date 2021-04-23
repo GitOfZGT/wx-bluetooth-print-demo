@@ -18,4 +18,7 @@
             <slot name="footer"></slot>
         </block>
     </view>
+    <view>
+        <slot name="right"></slot>
+    </view>
 </button>

@@ -1,13 +1,17 @@
 {
     "usingComponents": {
-        "wux-cell": "/wux-weapp-ex/cell/index",
-        "wux-cell-group": "/wux-weapp-ex/cell-group/index",
-        "wux-button": "/wux-weapp-ex/button/index",
-        "wux-radio-group": "/wux-weapp-ex/radio-group/index",
-        "wux-radio": "/wux-weapp-ex/radio/index",
-        "wux-tag": "/wux-weapp-ex/tag/index",
-        "wux-switch": "/wux-weapp-ex/switch/index",
-        "wux-textarea": "/wux-weapp-ex/textarea/index"
+        "wux-cell": "../../wux-weapp-ex/cell/index",
+        "wux-cell-group": "../../wux-weapp-ex/cell-group/index",
+        "wux-button": "../../wux-weapp-ex/button/index",
+        "wux-radio-group": "../../wux-weapp-ex/radio-group/index",
+        "wux-radio": "../../wux-weapp-ex/radio/index",
+        "wux-slider": "../../wux-weapp-ex/slider/index",
+        "wux-progress": "../../wux-weapp-ex/progress/index",
+        "wux-popup": "../../wux-weapp-ex/popup/index",
+        "wux-tag": "../../wux-weapp-ex/tag/index",
+        "wux-textarea": "../../wux-weapp-ex/textarea/index",
+        "wux-switch": "../../wux-weapp-ex/switch/index",
+        "wux-toptips": "../../wux-weapp-ex/toptips/index"
     },
     "enablePullDownRefresh": true
 }

@@ -1,91 +1,100 @@
-/*
- * @Author: zgt
- * @Date: 2019-07-03 15:33:01
- * @LastEditors: zgt
- * @LastEditTime: 2019-09-07 12:21:10
- * @Description: file content
- */
-import { dataType, GenNonDuplicateID, firstWordToUpperCase } from '../zerod-ztool/index';
-import md5 from './libs/md5.min';
-import UUIDjs from './libs/uuid';
-import { Base64 } from './libs/base64.min';
-import { $wuxToptips } from '../wux-weapp-ex/index';
-Promise.prototype.finally = function(callback) {
-    let P = this.constructor;
-    return this.then(
-        (value) => P.resolve(callback()).then(() => value),
-        (reason) =>
-            P.resolve(callback()).then(() => {
-                throw reason;
-            }),
-    );
+import md5 from "./libs/md5.min";
+const statusMsg = {
+  401: "您的请求未经授权 401",
+  403: "您的请求被拒绝 403",
+  404: "您的请求内容不存在 404",
+  405: "您的请求方式不被允许 405",
+  500: "服务器出现意外情况 500",
+  501: "服务器不支持您的请求方式 501",
+  502: "服务器无响应 502",
+  503: "服务器异常 503",
+  504: "服务器无响应 504",
+  505: "服务器不支持您的http方式 505",
 };
-function formatNumber(str, t = 2) {
-    str = str.toString();
-    while (str.length < t) {
-        str = '0' + str;
-    }
-    return str;
+const codeMsg = {
+  "-1": "请求失败，请联系管理员",
+  403403: "未登录或用户已过期，请重新登录",
+};
+import { $wuxToptips } from "../wux-weapp-ex/index";
+// Promise.prototype.finally = function (callback) {
+//   let P = this.constructor;
+//   return this.then(
+//     (value) => P.resolve(callback()).then(() => value),
+//     (reason) =>
+//       P.resolve(callback()).then(() => {
+//         throw reason;
+//       })
+//   );
+// };
+export const GenNonDuplicateID = function (randomLength = 8) {
+  const id = (
+    Number((Math.random() + Math.random()).toString().substr(2, 13)) +
+    Date.now()
+  )
+    .toString(36)
+    .slice(-parseInt(randomLength, 10));
+  return id;
+};
+export function createSign({ appCode, method, url, query }) {
+  //任意字符串
+  const nonce = GenNonDuplicateID().toString();
+  //当前时间戳
+  const timestamp = new Date(Date.now()).getTime();
+  return {
+    nonce,
+    timestamp,
+    //签名
+    sign: md5(
+      method +
+        "\n" +
+        nonce +
+        "\n" +
+        timestamp +
+        "\n" +
+        appCode +
+        "\n" +
+        (query ? JSON.stringify(query) : "")
+    ),
+  };
 }
-
-//生成与后台协定的 X-Auth-Info
-function getAuth(token = '123') {
-    const key = GenNonDuplicateID().toString();
-    const md5Key = md5(key);
-    const md5Token = md5(token);
-    let str = '';
-    for (let index = 0; index < md5Key.length; index += 2) {
-        const element = md5Key[index];
-        str += element;
-    }
-    return `${md5Token},${key},${Base64.encode(`${md5Token}${str}`)}`;
+export function isObject(data) {
+  return Object.prototype.toString.call(data) === "[object Object]";
 }
-//生成与后台协定的 X-Channel-Info
-function getChannel(Auth) {
-    const uuid = UUIDjs.create();
-    // console.log("uuid", uuid);
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const hour = date.getHours();
-    const minute = date.getMinutes();
-    const second = date.getSeconds();
-    const Msecond = date.getUTCMilliseconds();
-    const str = `${year}${formatNumber(month)}${formatNumber(day)}${formatNumber(hour)}${formatNumber(
-        minute,
-    )}${formatNumber(second)}${formatNumber(Msecond, 3)}`;
-    // console.log("timer", str);
-    const tmp = `${uuid},${str},${md5(Auth)}`;
-    const signature = Base64.encode(tmp);
-    return `${uuid},${str},${signature}`;
-}
-
-function showRejectToast(re) {
-    let wuxToast = null;
-    try {
-        wuxToast = $wuxToptips();
-    } catch (e) {
-        wuxToast = null;
-    }
-    const newResult = { ...re, msg: re.msg || re.message || re.error || re.data };
-    const text =
-        newResult && newResult.msg
-            ? newResult.msg + (newResult.status ? `,status:${newResult.status}` : '')
-            : '数据请求失败，请稍后重试';
-    if (wuxToast) {
-        wuxToast.error({
-            text,
-            hidden: true,
-            duration: 3000,
-        });
-        return;
-    }
-    wx.showToast({
-        title: text,
-        icon: 'none',
-        duration: 3000,
+export function showRejectToast(re, msgConfig) {
+  msgConfig = msgConfig || {};
+  re = re && typeof re !== "object" ? { msg: re } : re;
+  let wuxToast = null;
+  try {
+    wuxToast = $wuxToptips();
+  } catch (e) {
+    wuxToast = null;
+  }
+  const newResult =
+    typeof msgConfig.disposeResult === "function"
+      ? msgConfig.disposeResult(re)
+      : {
+          ...re,
+          msg: re.msg || re.message || re.error || re.data || re.errMsg,
+        };
+  const codemsgtext = codeMsg[newResult.code];
+  const statusmsgtext = statusMsg[newResult.status];
+  const text = codemsgtext || statusmsgtext || newResult.msg;
+  if (!text) {
+    return;
+  }
+  if (wuxToast) {
+    wuxToast.error({
+      text: `${text}\n${msgConfig.url || ""}`,
+      hidden: true,
+      duration: 3000,
     });
+    return;
+  }
+  wx.showToast({
+    title: text,
+    icon: "none",
+    duration: 3000,
+  });
 }
 /**
  *
@@ -99,45 +108,53 @@ function showRejectToast(re) {
  */
 
 export function wxRequest(method, url, query, config) {
-    return new Promise((resolve, reject) => {
-        let token = { token: '' };
-
-        let userInfo = {};
-        try {
-            userInfo = JSON.parse(wx.getStorageSync('detail'));
-            token = JSON.parse(wx.getStorageSync('token'));
-        } catch (e) {}
-        const Auth = getAuth(token.token);
-        config = dataType.isObject(config) ? config : {};
-
-        wx.request({
-            ...config,
-            ...{
-                method: method.toLocaleUpperCase(),
-                url,
-                data: query,
-                header: {
-                    ...(dataType.isObject(config.header) ? config.header : {}),
-                    'X-Token': token.token,
-                    'X-Auth-Info': Auth,
-                    'X-Channel-Info': getChannel(Auth),
-                    'X-UserId': userInfo.userBO ? userInfo.userBO.id : '',
-                },
-                success: (re) => {
-                    if (re.data.code == 0 || re.data.code == 200) {
-                        resolve(re.data);
-                    } else {
-                        reject(re.data);
-                        showRejectToast(re.data);
-                    }
-                },
-                fail: (re) => {
-                    reject(re.data);
-                    showRejectToast(re.data);
-                },
-            },
-        });
+  method = method.toLowerCase();
+  return new Promise((resolve, reject) => {
+    // let token = { token: "" }
+    let userInfo = {};
+    try {
+      // token = JSON.parse(wx.getStorageSync("token"));
+      userInfo = JSON.parse(wx.getStorageSync("detail"));
+    } catch (e) {}
+    // const Auth = getAuth(token.token);
+    config = isObject(config) ? config : {};
+    const isToast = typeof config.isToast === "undefined" || config.isToast;
+    delete config.isToast;
+    const appCode = wx.getStorageSync("appCode") || "";
+    const header = config.header || config.headers;
+    wx.request({
+      ...config,
+      ...{
+        method: method.toLocaleUpperCase(),
+        url,
+        data: query,
+        header: {
+          "X-AppCode": appCode,
+          "X-UserId": userInfo.userBO ? userInfo.userBO.id : "",
+          ...createSign({ method, url, query, appCode }),
+          ...(isObject(header) ? header : {}),
+        },
+        success: (re) => {
+          if (re.data.code == 0 || re.data.code == 200) {
+            resolve(re.data || re);
+          } else {
+            console.log("wx.request success error", re);
+            reject(re.data || re);
+            if (isToast) {
+              showRejectToast(re.data || re, { url });
+            }
+          }
+        },
+        fail: (re) => {
+          console.log("wx.request fail", re);
+          reject(re.data || re);
+          if (isToast) {
+            showRejectToast(re.data || re, { url });
+          }
+        },
+      },
     });
+  });
 }
 /**
  *
@@ -148,129 +165,130 @@ export function wxRequest(method, url, query, config) {
  * @returns
  */
 export function wxAsyncPromise(name, options) {
-    return new Promise((resolve, reject) => {
-        wx[name]({
-            ...(options || {}),
-            success: function(res) {
-                resolve(res);
-            },
-            fail: function(res) {
-                reject(res);
-            },
-        });
+  const [first, second] = name.split(".");
+  const fnName = first === "qy" && second ? wx[first][second] : wx[first];
+  return new Promise((resolve, reject) => {
+    fnName({
+      ...(options ? options : {}),
+      success: function (res) {
+        resolve(res);
+      },
+      fail: function (res) {
+        reject(res);
+      },
     });
+  });
 }
 
 export function setStorageMethods() {
-    const methods = {
-        setItem: function(key, data) {
-            wx.setStorageSync(key, dataType.isObject(data) || dataType.isArray(data) ? JSON.stringify(data) : data);
-        },
-        getItem: function(key, { isParse } = {}) {
-            const saveData = wx.getStorageSync(key);
-            return isParse && saveData ? JSON.parse(saveData) : saveData;
-        },
-        removeItem: function(key) {
-            wx.removeStorageSync(key);
-        },
-        setItemAsync: function(key, data) {
-            return wxAsyncPromise('setStorage', {
-                key,
-                data: dataType.isObject(data) || dataType.isArray(data) ? JSON.stringify(data) : data,
-            });
-        },
-        getItemAsync: function(key, { isParse } = {}) {
-            return wxAsyncPromise('getStorage', {
-                key,
-            }).then((res) => {
-                const saveData = res.data;
-                res.data = isParse && saveData ? JSON.parse(saveData) : saveData;
-                return res;
-            });
-        },
-        removeItemAsync: function(key) {
-            return wxAsyncPromise('removeStorage', { key });
-        },
-    };
+  const methods = {
+    setItem: function (key, data) {
+      wx.setStorageSync(
+        key,
+        isObject(data) || Array.isArray(data) ? JSON.stringify(data) : data
+      );
+    },
+    getItem: function (key, { isParse } = {}) {
+      const saveData = wx.getStorageSync(key);
+      return isParse && saveData ? JSON.parse(saveData) : saveData;
+    },
+    removeItem: function (key) {
+      try {
+        wx.removeStorageSync(key);
+      } catch (e) {
+        console.log(e);
+      }
+    },
+    setItemAsync: function (key, data) {
+      return wxAsyncPromise("setStorage", {
+        key,
+        data:
+          isObject(data) || Array.isArray(data) ? JSON.stringify(data) : data,
+      });
+    },
+    getItemAsync: function (key, { isParse } = {}) {
+      return wxAsyncPromise("getStorage", {
+        key,
+      }).then((res) => {
+        const saveData = res.data;
+        res.data = isParse && saveData ? JSON.parse(saveData) : saveData;
+        return res;
+      });
+    },
+    removeItemAsync: function (key) {
+      return wxAsyncPromise("removeStorage", { key });
+    },
+  };
 
-    const storage = new Proxy(
-        {},
-        {
-            get: function(target, key, receiver) {
-                if (
-                    ['setItem', 'getItem', 'removeItem', 'setItemAsync', 'getItemAsync', 'removeItemAsync'].includes(
-                        key,
-                    )
-                ) {
-                    return methods[key];
-                }
+  const storage = new Proxy(
+    {},
+    {
+      get: function (target, key, receiver) {
+        if (
+          [
+            "setItem",
+            "getItem",
+            "removeItem",
+            "setItemAsync",
+            "getItemAsync",
+            "removeItemAsync",
+          ].includes(key)
+        ) {
+          return methods[key];
+        }
 
-                const hasSet = key ? key.match(/^set[A-Z]{1}\w*$/) : null;
-                const hasGet = key ? key.match(/^get[A-Z]{1}\w*$/) : null;
-                if (hasSet) {
-                    const storageKey = hasSet[0].replace(/^set/g, '').toLowerCase();
-                    return function(data) {
-                        methods.setItem(storageKey, data);
-                    };
-                } else if (hasGet) {
-                    const storageKey = hasGet[0].replace(/^get/g, '').toLowerCase();
-                    return function(opt) {
-                        return methods.getItem(storageKey, opt);
-                    };
-                } else {
-                    return () => {
-                        return null;
-                    };
-                }
-            },
-        },
-    );
-    return storage;
-    // storageKeys.forEach((key) => {
-    //     try {
-    //         wx.removeStorageSync(key);
-    //     } catch (e) {}
-    //     storage[`set${firstWordToUpperCase(key)}`] = function(data) {
-    //         wx.setStorageSync(key, dataType.isObject(data) || dataType.isArray(data) ? JSON.stringify(data) : data);
-    //     };
-    //     storage[`get${firstWordToUpperCase(key)}`] = function({ isParse } = {}) {
-    //         const saveData = wx.getStorageSync(key);
-    //         return isParse && saveData ? JSON.parse(saveData) : saveData;
-    //     };
-    // });
-    // return storage;
+        const hasSet = key ? key.match(/^set[A-Z]{1}\w*$/) : null;
+        const hasGet = key ? key.match(/^get[A-Z]{1}\w*$/) : null;
+        if (hasSet) {
+          const storageKey = hasSet[0].replace(/^set/g, "").toLowerCase();
+          return function (data) {
+            methods.setItem(storageKey, data);
+          };
+        } else if (hasGet) {
+          const storageKey = hasGet[0].replace(/^get/g, "").toLowerCase();
+          return function (opt) {
+            return methods.getItem(storageKey, opt);
+          };
+        } else {
+          return () => {
+            return null;
+          };
+        }
+      },
+    }
+  );
+  return storage;
 }
 
 function wxOpenSetting(methodname, opt) {
-    wxAsyncPromise('showModal', {
-        title: '地理位置未授权',
-        content: '请点击确定打开授权设置',
-    }).then((res) => {
-        //点了确定
-        if (res.confirm) {
-            wxAsyncPromise('openSetting').then((res) => {
-                if (res.authSetting['scope.userLocation']) {
-                    wxAsyncPromise(methodname, opt)
-                        .then(opt.success)
-                        .catch(opt.fail);
-                } else {
-                    wxOpenSetting(methodname, opt);
-                }
-            });
+  wxAsyncPromise("showModal", {
+    title: "地理位置未授权",
+    content: "请点击确定打开授权设置",
+  }).then((res) => {
+    //点了确定
+    if (res.confirm) {
+      wxAsyncPromise("openSetting").then((res) => {
+        if (res.authSetting["scope.userLocation"]) {
+          wxAsyncPromise(methodname, opt).then(opt.success).catch(opt.fail);
+        } else {
+          wxOpenSetting(methodname, opt);
         }
-    });
+      });
+    }
+  });
 }
 
 export function wxLocationApi(methodname, opt = {}) {
-    wxAsyncPromise('getSetting').then((res) => {
-        if (res.authSetting['scope.userLocation'] || res.authSetting['scope.userLocation'] === undefined) {
-            wxAsyncPromise(methodname, opt)
-                .then(opt.success)
-                .catch(opt.fail);
-        } else {
-            wxOpenSetting(methodname, opt);
-        }
-    });
+  wxAsyncPromise("getSetting").then((res) => {
+    if (
+      res.authSetting["scope.userLocation"] ||
+      res.authSetting["scope.userLocation"] === undefined
+    ) {
+      wxAsyncPromise(methodname, opt).then(opt.success).catch(opt.fail);
+    } else {
+      wxOpenSetting(methodname, opt);
+    }
+  });
 }
 
 export default wxRequest;
