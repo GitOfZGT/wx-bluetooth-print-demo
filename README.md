@@ -3,13 +3,13 @@
 小程序连接蓝牙打印机打印文本与二维码等示例在 github 上都能找到一些，唯独打印图片这个案例几乎没有。希望能帮助到有打印图片需求的小伙伴。
 
 -   测试打印机：[凯盛诺 PTP-II-UBC 58mm 便携热敏打印机](http://www.csntek.cn/cn/show/270)
--   测试环境有：Android , IOS；其中 Android 和 IOS 在打印文本与二维码速率相对一致，但 IOS 打印图片几乎慢到无法打印的情况(听说蓝牙打印机在 IOS 中受限制，需要与 IOS 合作授权，在斑马品牌的一款打印机用 IOS 就能打印出来。即使是Android ，小程序打印图片比打印文本会慢许多，并不是打印机的问题，而是小程序只能使用低功率蓝牙，受限在一次发送20个字节的数据，需要分段递归发送，图片数据可以达到几万、几十万个字节。)
--   打印机指令类型：ESC/POS 指令集 (打印机产家都会提供对应的指令文档，此demo 中使用十进制的数据格式的指令，十六进制的指令或者更多指令的使用方式可以参考另一个示例[小程序蓝牙打印 miniprogram-bluetoothprinter](https://github.com/benioZhang/miniprogram-bluetoothprinter))
+-   测试环境有：Android , IOS；其中 Android 和 IOS 在打印文本与二维码速率相对一致，但 IOS 打印图片几乎慢到无法打印的情况(听说蓝牙打印机在 IOS 中受限制，需要与 IOS 合作授权，在斑马品牌的一款打印机用 IOS 就能打印出来。即使是 Android ，小程序打印图片比打印文本会慢许多，并不是打印机的问题，而是小程序只能使用低功率蓝牙，受限在一次发送 20 个字节的数据，需要分段递归发送，图片数据可以达到几万、几十万个字节。)
+-   打印机指令类型：ESC/POS 指令集 (打印机产家都会提供对应的指令文档，此 demo 中使用十进制的数据格式的指令，十六进制的指令或者更多指令的使用方式可以参考另一个示例[小程序蓝牙打印 miniprogram-bluetoothprinter](https://github.com/benioZhang/miniprogram-bluetoothprinter))
 
 ## 示例功能
 
 -   连接蓝牙打印机
--   打印文本 (打印中文出现乱码,因为打印机默认的编码是GB2312,需要将UTF-8转GB2312,这里用的轻小的[GBK库](https://github.com/cnwhy/GBK.js),也可以使用[小程序蓝牙打印 miniprogram-bluetoothprinter](https://github.com/benioZhang/miniprogram-bluetoothprinter)提到的[text-encoding](https://github.com/inexorabletash/text-encoding))
+-   打印文本 (打印中文出现乱码,因为打印机默认的编码是 GB2312,需要将 UTF-8 转 GB2312,这里用的轻小的[GBK 库](https://github.com/cnwhy/GBK.js),也可以使用[小程序蓝牙打印 miniprogram-bluetoothprinter](https://github.com/benioZhang/miniprogram-bluetoothprinter)提到的[text-encoding](https://github.com/inexorabletash/text-encoding))
 -   打印二维码
 -   打印任意图片(此示例的重点)
 
@@ -49,10 +49,10 @@ export function wxAsyncPromise(name, options) {
     return new Promise((resolve, reject) => {
         wx[name]({
             ...(options || {}),
-            success: function(res) {
+            success: function (res) {
                 resolve(res);
             },
-            fail: function(res) {
+            fail: function (res) {
                 reject(res);
             },
         });
@@ -122,7 +122,7 @@ export function getDeviceCharacteristics(deviceId, services = [], success, fail)
 
 ### 位图数据
 
-需要把 Uint8ClampedArray 类型的数据转成打印机识别的点阵位图数据（也可以让后台实现图片转位图数据，参考[热敏打印机编程 ESC/POS 指令](https://www.jianshu.com/p/dd6ca0054298)）。  
+需要把 Uint8ClampedArray 类型的数据转成打印机识别的点阵位图数据（也可以让后台实现图片转位图数据，参考[热敏打印机编程 ESC/POS 指令](https://www.jianshu.com/p/dd6ca0054298)）。
 
 不同打印机厂家的指令集可能不同，但打印图片的位图数据是一样的。
 
@@ -277,4 +277,4 @@ export function printImage(opt = {}, imageInfo = {}) {
 
 ## 安利
 
--   [微信小程序组件库 wux-weapp](https://wux-weapp.github.io/wux-weapp-docs/?cache=712#/introduce)
+-   [微信小程序组件库 wux-weapp](https://https://www.wuxui.com/)
