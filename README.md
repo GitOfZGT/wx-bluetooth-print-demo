@@ -129,6 +129,10 @@ export function getDeviceCharacteristics(deviceId, services = [], success, fail)
 ### 贴出 Uint8ClampedArray 转位图数据的代码
 
 ```js
+
+function grayPixle(pix) {
+    return pix[0] * 0.299 + pix[1] * 0.587 + pix[2] * 0.114;
+}
 /**
  * overwriteImageData
  * @param {object} data
@@ -136,6 +140,7 @@ export function getDeviceCharacteristics(deviceId, services = [], success, fail)
             width,//图片宽度
             height,//图片高度
             imageData,//Uint8ClampedArray
+            threshold,//阈值
     }
  */
 export function overwriteImageData(data) {
