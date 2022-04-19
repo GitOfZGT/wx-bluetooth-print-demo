@@ -15,11 +15,11 @@
 
 ## 效果图
 
-<div>
-    <img src="./assets/images/demoPG1.jpg" width="20%">
-	<img src="./assets/images/demoPG4.jpg" width="20%">
-	<img src="./assets/images/demoPG2.jpg" width="20%">
-	<img src="./assets/images/demoPG3.jpg" width="20%">
+<div style="display:flex;">
+    <img style="display:inline-block;"  src="https://img-blog.csdnimg.cn/20210428130946489.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2NuX3pndF9ib3Nz,size_16,color_FFFFFF,t_70" width="20%">
+	<img style="display:inline-block;"   src="https://img-blog.csdnimg.cn/20210428130946483.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2NuX3pndF9ib3Nz,size_16,color_FFFFFF,t_70" width="20%">
+	<img style="display:inline-block;"   src="https://img-blog.csdnimg.cn/20210428130946480.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2NuX3pndF9ib3Nz,size_16,color_FFFFFF,t_70" width="20%">
+	<img style="display:inline-block;"   src="https://img-blog.csdnimg.cn/20210428130946158.jpg?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2NuX3pndF9ib3Nz,size_16,color_FFFFFF,t_70" width="20%">
 </div>
 
 ## Demo 中连接打印机的流程
@@ -231,6 +231,16 @@ export function sendDataToDevice(options) {
 ### 贴出发送逐行图片数据的代码
 
 ```js
+// 使用的 ESC/POS指令， 十进制方式
+// 更多指令请查看 ./PrintCommandDocs/ESC-POS指令文档(凯盛诺打印机代表).pdf
+
+export const printCommand = {
+    left: [27, 97, 0], //居左
+    center: [27, 97, 1], //居中
+    right: [27, 97, 2], //居右
+    clear: [27, 64], //初始化
+    enter: [10],
+};
 /**
  * printImage
  * @param {object} opt
@@ -239,28 +249,131 @@ export function sendDataToDevice(options) {
             serviceId,//服务id
             characteristicId,//可用特征值uuid
             lasterSuccess , //最后完成的回调
+            onProgress, //每段发送完成的回调
 	}
  * @param {object} imageInfo // 由overwriteImageData返回的对象
  */
+/**2022-04-19对printImage做了修复处理，请往下看，这里只是留个记录*/
 export function printImage(opt = {}, imageInfo = {}) {
+    const { printAlign = 'left' } = opt;
     let arr = imageInfo.array,
         width = imageInfo.width;
     const writeArray = [];
     const xl = width % 256;
     const xh = width / 256;
-    //分行发送图片数据,用的十进制指令
-    const command = [29, 118, 48, 0, xl, xh, 1, 0];
+    //分行发送图片数据
+    const command = []
+        .concat(printCommand.clear)
+        .concat(printCommand[printAlign])
+        .concat([29, 118, 48, 0, xl, xh, 1, 0]);
     for (let i = 0; i < arr.length / width; i++) {
         const subArr = arr.slice(i * width, i * width + width);
         const tempArr = command.concat(subArr);
         writeArray.push(new Uint8Array(tempArr));
     }
+    const len = writeArray.length;
     const print = (options, writeArray) => {
         if (writeArray.length) {
             sendDataToDevice({
                 ...options,
                 value: writeArray.shift().buffer,
                 lasterSuccess: () => {
+                    options.onProgress && options.onProgress(Math.floor(((len - writeArray.length) / len) * 100));
+                    if (writeArray.length) {
+                        print(options, writeArray);
+                    } else {
+                        options.lasterSuccess && options.lasterSuccess();
+                    }
+                },
+            });
+        }
+    };
+    print(opt, writeArray);
+}
+
+```
+### 2022-04-19更新
+**打印图片某些情况会出现乱码，这个问题之前不知道如何复现出来，有道友反馈修改图片打印宽度时会变形甚至乱码，是什么原因也没有头绪，最近又看了一些内容，发现图片打印时的宽度应该是8的整数倍才行，我测试的打印机最大宽度时384，也是8的整数倍，所以打印很正常。在github的demo中处理了这个问题，也可以随意的修改打印宽度。主要处理如下：**
+```js
+{
+  chooseImage() {
+        const ctx = wx.createCanvasContext('secondCanvas');
+        //选择一张图片
+        wx.chooseImage({
+            success: (res) => {
+                const tempFilePath = res.tempFilePaths[0];
+                wx.getImageInfo({
+                    src: tempFilePath,
+                    success: (res) => {
+                        // 打印宽度须是8的整数倍，这里处理掉多余的，使得宽度合适，不然有可能乱码
+                        const mw = this.data.paperWidth % 8;
+                        const w = mw === 0 ? this.data.paperWidth : this.data.paperWidth - mw;
+                        // 等比算出图片的高度
+                        const h = Math.floor((res.height * w) / res.width);
+                        // 设置canvas宽高
+                        this.setData({
+                            img: tempFilePath,
+                            canvasHeight: h,
+                            canvasWidth: w,
+                        });
+                        // 在canvas 画一张图片
+                        ctx.fillStyle = 'rgba(255,255,255,1)';
+                        ctx.clearRect(0, 0, w, h);
+                        ctx.fillRect(0, 0, w, h);
+                        ctx.drawImage(tempFilePath, 0, 0, w, h);
+                        ctx.draw(false, () => {
+                            wx.hideLoading();
+                        });
+                    },
+                    fail: (res) => {
+                        console.log('get info fail', res);
+                        wx.hideLoading();
+                    },
+                });
+            },
+        });
+    }
+}
+```
+
+还有printImage方法的改动
+
+```js
+function printImage(opt = {}, imageInfo = {}) {
+    const { printAlign = 'left' } = opt;
+    let arr = imageInfo.array,
+        width = imageInfo.width;
+    const writeArray = [];
+    const h = arr.length / width;
+    const xl = width % 256;
+    const xh = (width - xl) / 256;
+    const yl = h % 256;
+    const yh = (h - yl) / 256;
+    //分行发送图片数据
+    const command = []
+        .concat(printCommand.clear)
+        .concat(printCommand[printAlign])
+        .concat([29, 118, 48, 0, xl, xh, yl, yh]);
+
+    // 分段逐行打印
+    // .concat([29, 118, 48, 0, xl, xh, 1, 0]);
+    // for (let i = 0; i < arr.length / width; i++) {
+    //     const subArr = arr.slice(i * width, i * width + width);
+    //     const tempArr = command.concat(subArr);
+    //     writeArray.push(new Uint8Array(tempArr));
+    // }
+
+    // 非逐行打印
+    writeArray.push(new Uint8Array(command.concat(arr)));
+    
+    const len = writeArray.length;
+    const print = (options, writeArray) => {
+        if (writeArray.length) {
+            sendDataToDevice({
+                ...options,
+                value: writeArray.shift().buffer,
+                lasterSuccess: () => {
+                    options.onProgress && options.onProgress(Math.floor(((len - writeArray.length) / len) * 100));
                     if (writeArray.length) {
                         print(options, writeArray);
                     } else {
