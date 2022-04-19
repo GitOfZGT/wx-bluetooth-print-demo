@@ -283,18 +283,28 @@ export function printImage(opt = {}, imageInfo = {}) {
     let arr = imageInfo.array,
         width = imageInfo.width;
     const writeArray = [];
+    const h = arr.length / width;
     const xl = width % 256;
-    const xh = width / 256;
+    const xh = (width - xl) / 256;
+    const yl = h % 256;
+    const yh = (h - yl) / 256;
     //分行发送图片数据
     const command = []
         .concat(printCommand.clear)
         .concat(printCommand[printAlign])
-        .concat([29, 118, 48, 0, xl, xh, 1, 0]);
-    for (let i = 0; i < arr.length / width; i++) {
-        const subArr = arr.slice(i * width, i * width + width);
-        const tempArr = command.concat(subArr);
-        writeArray.push(new Uint8Array(tempArr));
-    }
+        .concat([29, 118, 48, 0, xl, xh, yl, yh]);
+
+    // 分段逐行打印
+    // .concat([29, 118, 48, 0, xl, xh, 1, 0]);
+    // for (let i = 0; i < arr.length / width; i++) {
+    //     const subArr = arr.slice(i * width, i * width + width);
+    //     const tempArr = command.concat(subArr);
+    //     writeArray.push(new Uint8Array(tempArr));
+    // }
+
+    // 非逐行打印
+    writeArray.push(new Uint8Array(command.concat(arr)));
+    
     const len = writeArray.length;
     const print = (options, writeArray) => {
         if (writeArray.length) {

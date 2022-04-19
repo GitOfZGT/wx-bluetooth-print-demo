@@ -15,7 +15,7 @@ const bluetoothConfig = getBluetoothPageConfig();
 Page({
     data: {
         ...bluetoothConfig.data,
-        // 打印机纸张宽度
+        // 打印机纸张宽度，我用的打印几的纸张最大宽度是384，可以修改其他的
         paperWidth: 384,
         canvasWidth: 1,
         canvasHeight: 1,
@@ -102,14 +102,18 @@ Page({
                 wx.getImageInfo({
                     src: tempFilePath,
                     success: (res) => {
-                        const w = this.data.paperWidth;
+                        // 打印宽度须是8的整数倍，这里处理掉多余的，使得宽度合适，不然有可能乱码
+                        const mw = this.data.paperWidth % 8;
+                        const w = mw === 0 ? this.data.paperWidth : this.data.paperWidth - mw;
+                        // 等比算出图片的高度
                         const h = Math.floor((res.height * w) / res.width);
+                        // 设置canvas宽高
                         this.setData({
                             img: tempFilePath,
                             canvasHeight: h,
                             canvasWidth: w,
                         });
-                        //canvas 画一张图片
+                        // 在canvas 画一张图片
                         ctx.fillStyle = 'rgba(255,255,255,1)';
                         ctx.clearRect(0, 0, w, h);
                         ctx.fillRect(0, 0, w, h);
@@ -197,6 +201,7 @@ Page({
                 //打印图片
                 printImage(
                     opt,
+                    // 将图片数据转成位图数据
                     overwriteImageData({
                         threshold: threshold[0],
                         imageData: pix,
