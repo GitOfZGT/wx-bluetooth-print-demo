@@ -73,7 +73,7 @@ Page({
             value: new Uint8Array([...printCommand.clear, ...GBK.encode(this.data.message), ...printCommand.enter])
                 .buffer,
             lasterSuccess: () => {
-                // 打印二维码
+                // 用指令打印二维码
                 if (this.data.checked) {
                     printQR({
                         ...opt,

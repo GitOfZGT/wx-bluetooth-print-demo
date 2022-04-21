@@ -3,10 +3,10 @@
 <view class="z-padding">
     <wux-textarea value="{{ message }}" placeholder="请输入打印内容" bind:change="inputChange" controlled rows="{{10}}" maxlength="{{-1}}" />
 </view>
-<view class="z-padding">是否打印二维码</view>
+<!-- <view class="z-padding">是否打印二维码</view>
 <view class="z-padding">
     <wux-switch value="{{ checked }}" bind:change="checkedChange" />
-</view>
+</view> -->
 <view class="z-padding">
     <wux-button type="positive" size="default" block bind:click="print">打印以上内容</wux-button>
 </view>

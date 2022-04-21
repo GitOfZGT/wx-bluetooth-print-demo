@@ -147,11 +147,11 @@ export function sendDataToDevice(options) {
     //这里默认一次20个字发送
     const speed = options.onceByleLength || 20;
     if (byteLength > 0) {
-        wxAsyncPromise('writeBLECharacteristicValue', {
+        wx.writeBLECharacteristicValue({
             ...options,
+            // writeType:"writeNoResponse",
             value: options.value.slice(0, byteLength > speed ? speed : byteLength),
-        })
-            .then((res) => {
+            success: function (res) {
                 if (byteLength > speed) {
                     sendDataToDevice({
                         ...options,
@@ -160,10 +160,11 @@ export function sendDataToDevice(options) {
                 } else {
                     options.lasterSuccess && options.lasterSuccess();
                 }
-            })
-            .catch((res) => {
+            },
+            fail: function (res) {
                 options.onError && options.onError(res);
-            });
+            },
+        });
     }
 }
 export function charToArrayBuffer(str) {
@@ -225,13 +226,13 @@ function grayPixle(pix) {
     return pix[0] * 0.299 + pix[1] * 0.587 + pix[2] * 0.114;
 }
 /**
- * overwriteImageData
+ * overwriteImageData 图片数据转 位图数据
  * @param {object} data
  * {
             width,//图片宽度
             height,//图片高度
             imageData,//Uint8ClampedArray
-            threshold,//阈值
+            threshold,//阈值, 越大，打印点数越多，图形越黑
     }
  */
 export function overwriteImageData(data) {
@@ -277,42 +278,30 @@ export function overwriteImageData(data) {
         height: sendHeight,
     };
 }
-
-export function printImage(opt = {}, imageInfo = {}) {
-    const { printAlign = 'left' } = opt;
-    let arr = imageInfo.array,
-        width = imageInfo.width;
-    const writeArray = [];
-    const h = arr.length / width;
-    const xl = width % 256;
-    const xh = (width - xl) / 256;
-    const yl = h % 256;
-    const yh = (h - yl) / 256;
-    //分行发送图片数据
-    const command = []
-        .concat(printCommand.clear)
-        .concat(printCommand[printAlign])
-        .concat([29, 118, 48, 0, xl, xh, yl, yh]);
-
-    // 分段逐行打印
-    // .concat([29, 118, 48, 0, xl, xh, 1, 0]);
-    // for (let i = 0; i < arr.length / width; i++) {
-    //     const subArr = arr.slice(i * width, i * width + width);
-    //     const tempArr = command.concat(subArr);
-    //     writeArray.push(new Uint8Array(tempArr));
-    // }
-
-    // 非逐行打印
-    writeArray.push(new Uint8Array(command.concat(arr)));
-    
-    const len = writeArray.length;
+/**
+ * 分段发送二进制数据，按allUint8Array的length产生发送的进度
+ * @export
+ * @param {object} options
+ * {
+            deviceId,
+            serviceId,
+            characteristicId,
+			lasterSuccess,
+            onProgress,
+    }
+ *  * @param {array} allUint8Array  所有的Uint8Array
+ */
+export function sendDataToPrint(options, allUint8Array) {
+    const allLenth = allUint8Array.length;
+    const writeArrayCopyer = allUint8Array.slice(0);
     const print = (options, writeArray) => {
         if (writeArray.length) {
             sendDataToDevice({
                 ...options,
                 value: writeArray.shift().buffer,
                 lasterSuccess: () => {
-                    options.onProgress && options.onProgress(Math.floor(((len - writeArray.length) / len) * 100));
+                    options.onProgress &&
+                        options.onProgress(Math.floor(((allLenth - writeArray.length) / allLenth) * 100));
                     if (writeArray.length) {
                         print(options, writeArray);
                     } else {
@@ -322,5 +311,108 @@ export function printImage(opt = {}, imageInfo = {}) {
             });
         }
     };
-    print(opt, writeArray);
+    print(options, writeArrayCopyer);
+}
+/**
+ * 获取打印图片的指令
+ *
+ * @export
+ * @param {object} options
+ * {
+           lineByLine, // 是否逐行打印，默认true
+    }
+  * @param {object} imageInfo overwriteImageData 得到的位图数据数组和宽高信息
+    {
+        array,
+        width,
+        height
+    }
+ */
+export function getImageCommandArray(opt = {}, imageInfo = {}) {
+    const lineByLine = typeof opt.lineByLine !== 'boolean' ? true : opt.lineByLine;
+    const width = imageInfo.width;
+    const h = imageInfo.height;
+    const xl = width % 256;
+    const xh = (width - xl) / 256;
+    const yl = h % 256;
+    const yh = (h - yl) / 256;
+    //打印图片的十进制指令数组
+    let command = [];
+
+    if (lineByLine) {
+        // 分段逐行的指令
+        command = command.concat([29, 118, 48, 0, xl, xh, 1, 0]);
+    } else {
+        // 非分段逐行的指令
+        command = command.concat([29, 118, 48, 0, xl, xh, yl, yh]);
+    }
+
+    return command;
+}
+/**
+ * 获取一张图片数据与指令整合的writeArray，结合 sendDataToPrint 发送二进制数据到蓝牙打印机
+ * @param {object} options
+ * {
+           lineByLine, // 是否逐行打印，默认true
+           printAlign, // 打印的位置
+    }
+  * @param {object} imageInfo overwriteImageData 得到的位图数据数组和宽高信息
+    {
+        array,
+        width,
+        height
+    }
+ */
+export function getPrintImageWriteArray(opt = {}, imageInfo = {}) {
+    const lineByLine = typeof opt.lineByLine !== 'boolean' ? true : opt.lineByLine;
+    const width = imageInfo.width;
+    let arr = imageInfo.array;
+    let writeArray = [];
+    const iniTcommand = [].concat(printCommand.clear).concat(printCommand[opt.printAlign || 'left']);
+    const command = getImageCommandArray(opt, imageInfo);
+    writeArray.push(new Uint8Array(iniTcommand));
+    // 分段逐行打印的数据
+    if (lineByLine) {
+        for (let i = 0; i < arr.length / width; i++) {
+            const subArr = arr.slice(i * width, i * width + width);
+            const tempArr = command.concat(subArr);
+            writeArray.push(new Uint8Array(tempArr));
+        }
+    } else {
+        // 非逐行打印
+        writeArray.push(new Uint8Array(command.concat(arr)));
+    }
+    // writeArray.push(new Uint8Array([27, 74, 3]));
+    return writeArray;
+}
+/**
+ * 只打印一张图片数据的方法
+ * @param {object} options
+ * {
+            deviceId,
+            serviceId,
+            characteristicId,
+			lasterSuccess,
+            onProgress,
+            printAlign, "left"|"right"|"center" 
+    }
+ * @param {object} imageInfo overwriteImageData 得到的位图数据数组和宽高信息
+    {
+        array,
+        width,
+        height
+    }
+ */
+
+export function printImage(opt, imageInfo) {
+    sendDataToPrint(
+        opt,
+        getPrintImageWriteArray(
+            {
+                printAlign: opt.printAlign,
+                lineByLine: opt.lineByLine,
+            },
+            imageInfo,
+        ),
+    );
 }
