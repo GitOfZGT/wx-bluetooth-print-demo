@@ -294,6 +294,9 @@ export function printImage(opt = {}, imageInfo = {}) {
 ```
 ### 2022-04-19更新
 **打印图片某些情况会出现乱码，这个问题之前不知道如何复现出来，有道友反馈修改图片打印宽度时会变形甚至乱码，是什么原因也没有头绪，最近又看了一些内容，发现图片打印时的宽度应该是8的整数倍才行，我测试的打印机最大宽度时384，也是8的整数倍，所以打印很正常。在github的demo中处理了这个问题，也可以随意的修改打印宽度。主要处理如下：**
+
+pages/blueList/index.js
+
 ```js
 {
   chooseImage() {
@@ -336,7 +339,7 @@ export function printImage(opt = {}, imageInfo = {}) {
 }
 ```
 
-还有printImage方法的改动
+还有printImage方法的改动，wx-weapp-tool/bluetoolth.js
 
 ```js
 /**
@@ -479,7 +482,9 @@ export function printImage(opt, imageInfo) {
 }
 
 ```
+## 打印机指令文档
 
+在 PrintCommandDocs目录有 `ESC-POS`和`CPCL`两种类型的pdf指令文档
 ## 主要参考
 
 -   [微信低功率蓝牙](https://developers.weixin.qq.com/community/develop/doc/0008acd004ccd86b37d649ee55b009?highLine=%25E8%2593%259D%25E7%2589%2599)
